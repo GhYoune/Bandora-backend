@@ -191,7 +191,9 @@ class TestForm
                     TextInput::make('prep_seconds')->label('Preparation (seconds)')->numeric()->default(60),
                     TextInput::make('speak_seconds')->label('Speaking time (seconds)')->numeric()->default(120),
                 ]),
-                $questions('follow_ups')->label('Follow-up questions'),
+                $questions('follow_ups')->label('Follow-up questions')
+                    ->helperText('One or two short questions asked after the long turn, as in the real test.'),
+                TextInput::make('follow_up_seconds')->label('Max answer length per follow-up (seconds)')->numeric()->default(20),
             ]),
             Section::make('Part 3 · Discussion')->statePath('part3')->schema([
                 Grid::make(2)->schema([

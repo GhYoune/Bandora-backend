@@ -11,6 +11,7 @@ use App\Models\Attempt;
 use App\Models\Recording;
 use App\Services\AttemptService;
 use App\Services\DashboardService;
+use App\Services\InsightsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -109,6 +110,11 @@ class AttemptController extends Controller
     public function dashboard(Request $request, DashboardService $dashboard): JsonResponse
     {
         return response()->json($dashboard->build($request->user()));
+    }
+
+    public function insights(Request $request, InsightsService $insights): JsonResponse
+    {
+        return response()->json($insights->build($request->user()));
     }
 
     private function progress(Request $request): array

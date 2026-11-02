@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['skill', 'title', 'description', 'is_free', 'is_published', 'duration_seconds', 'sort', 'form'])]
+#[Fillable(['user_id', 'skill', 'title', 'description', 'is_free', 'is_published', 'duration_seconds', 'sort', 'form'])]
 class Test extends Model
 {
     use HasUlids;
@@ -46,9 +47,26 @@ class Test extends Model
         return $this->hasMany(Attempt::class);
     }
 
+    /** The student who wrote this test (custom practice); null for the teacher's tests. */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function isCustom(): bool
+    {
+        return $this->user_id !== null;
+    }
+
     public function scopePublished(Builder $query): void
     {
-        $query->where('is_published', true);
+        $query->where('is_published', true)->whereNull('user_id');
+    }
+
+    /** The teacher's tests, without students' custom practice. */
+    public function scopeCatalog(Builder $query): void
+    {
+        $query->whereNull('user_id');
     }
 
     /** Writing: which tasks the test contains. */

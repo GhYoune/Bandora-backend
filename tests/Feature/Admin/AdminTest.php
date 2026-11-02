@@ -4,10 +4,13 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\PaymentStatus;
 use App\Enums\Skill;
+use App\Filament\Resources\Decks\Pages\CreateDeck;
 use App\Filament\Resources\PaymentRequests\Pages\ManagePaymentRequests;
 use App\Filament\Resources\Tests\Pages\CreateTest;
 use App\Filament\Resources\Tests\Pages\EditTest;
+use App\Filament\Resources\Tests\Pages\ListTests;
 use App\Filament\Resources\Users\Pages\ViewUser;
+use App\Models\Deck;
 use App\Models\Pack;
 use App\Models\Test;
 use App\Models\User;
@@ -36,10 +39,41 @@ class AdminTest extends TestCase
 
     public function test_admin_pages_render(): void
     {
-        foreach (['/admin', '/admin/payment-requests', '/admin/users', '/admin/tests', '/admin/packs', '/admin/tests/create'] as $url) {
+        foreach (['/admin', '/admin/payment-requests', '/admin/users', '/admin/tests', '/admin/packs', '/admin/tests/create', '/admin/decks', '/admin/decks/create'] as $url) {
             $this->get($url)->assertOk();
         }
         $this->get('/admin/tests/'.Test::first()->id.'/edit')->assertOk();
+        $this->get('/admin/decks/'.Deck::first()->id.'/edit')->assertOk()->assertSee('applicant');
+    }
+
+    public function test_students_custom_tasks_stay_out_of_the_test_list(): void
+    {
+        $student = User::firstWhere('email', 'student@demo.dz');
+        $custom = Test::create([
+            'user_id' => $student->id, 'skill' => Skill::Writing, 'title' => 'Your own task · Writing Task 2',
+            'duration_seconds' => 0, 'form' => ['tasks' => [['number' => 2, 'prompt' => 'Some prompt that is long enough.']]],
+        ]);
+
+        Livewire::test(ListTests::class)
+            ->assertCanSeeTableRecords([Test::catalog()->first()])
+            ->assertCanNotSeeTableRecords([$custom]);
+    }
+
+    public function test_teacher_creates_a_deck_with_cards(): void
+    {
+        Livewire::test(CreateDeck::class)
+            ->fillForm([
+                'title' => 'Health', 'topic' => 'Health', 'is_free' => true, 'is_published' => true,
+                'cards' => [
+                    ['word' => 'symptom', 'definition' => 'A sign of an illness.', 'example' => 'A cough is a common symptom.', 'translation_fr' => 'symptôme'],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $deck = Deck::firstWhere('title', 'Health');
+        $this->assertSame(['symptom'], $deck->cards()->pluck('word')->all());
+        $this->assertSame('symptôme', $deck->cards()->first()->translation_fr);
     }
 
     public function test_teacher_approves_a_payment_from_the_inbox(): void

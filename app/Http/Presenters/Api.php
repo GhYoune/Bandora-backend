@@ -71,7 +71,10 @@ class Api
             'amountDzd' => $payment->amount_dzd,
             'status' => $payment->status->value,
             'createdAt' => $payment->created_at->toIso8601String(),
+            'message' => $payment->message(),
             'whatsappUrl' => $payment->whatsappUrl(),
+            'telegramUrl' => $payment->telegramUrl(),
+            'phone' => $payment->teacherPhone(),
         ];
     }
 
@@ -111,6 +114,8 @@ class Api
             'band' => $attempt->band,
             'rawScore' => $attempt->raw_score,
             'practiceConditions' => $attempt->practiceConditions(),
+            'custom' => $attempt->isCustom(),
+            'timed' => $attempt->test->duration_seconds > 0,
             'startedAt' => $attempt->started_at->toIso8601String(),
             'completedAt' => $attempt->completed_at?->toIso8601String(),
             'remainingSeconds' => $attempt->remaining_seconds,
@@ -149,6 +154,7 @@ class Api
             'attemptId' => $attempt->id,
             'testId' => $test->id,
             'title' => $test->title,
+            'custom' => $test->isCustom(),
             'completedAt' => $attempt->completed_at?->toIso8601String(),
         ];
 

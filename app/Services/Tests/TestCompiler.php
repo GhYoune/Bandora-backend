@@ -158,6 +158,7 @@ class TestCompiler
                 'closing' => (string) ($form['part2']['closing'] ?? ''),
                 'prepSeconds' => (int) ($form['part2']['prep_seconds'] ?? 60),
                 'speakSeconds' => (int) ($form['part2']['speak_seconds'] ?? 120),
+                'followUpSeconds' => (int) ($form['part2']['follow_up_seconds'] ?? 20),
                 'followUps' => $this->speakingQuestions($form['part2']['follow_ups']),
             ];
         }

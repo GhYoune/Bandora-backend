@@ -36,13 +36,29 @@ class PaymentRequest extends Model
         return $this->belongsTo(User::class, 'decided_by');
     }
 
-    /** wa.me link with the order written out, so the teacher can match the payment to the account. */
-    public function whatsappUrl(): string
+    /** The order written out, so the teacher can match the payment to the account. */
+    public function message(): string
     {
-        $text = "Hello! I would like the {$this->pack_name} pack ({$this->amount_dzd} DA).\n"
+        return "Hello! I would like the {$this->pack_name} pack ({$this->amount_dzd} DA).\n"
             ."Account: {$this->user->email}\n"
             ."Reference: {$this->reference}";
+    }
 
-        return 'https://wa.me/'.config('bandora.teacher_whatsapp').'?text='.rawurlencode($text);
+    public function whatsappUrl(): string
+    {
+        return 'https://wa.me/'.config('bandora.teacher_whatsapp').'?text='.rawurlencode($this->message());
+    }
+
+    /** Opens the chat with the teacher; the student pastes the message. */
+    public function telegramUrl(): ?string
+    {
+        $username = ltrim((string) config('bandora.teacher_telegram'), '@');
+
+        return $username !== '' ? "https://t.me/{$username}" : null;
+    }
+
+    public function teacherPhone(): ?string
+    {
+        return filled(config('bandora.teacher_phone')) ? (string) config('bandora.teacher_phone') : null;
     }
 }

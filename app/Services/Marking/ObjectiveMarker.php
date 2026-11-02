@@ -9,7 +9,7 @@ namespace App\Services\Marking;
 class ObjectiveMarker
 {
     /**
-     * @return array{rawScore: int, maxScore: int, review: list<array>, breakdown: list<array>}
+     * @return array{rawScore: int, maxScore: int, review: list<array>, breakdown: list<array>, misspelledWords: list<array>}
      */
     public function mark(array $content, array $key, array $answers): array
     {
@@ -33,6 +33,7 @@ class ObjectiveMarker
                         'userAnswer' => $isCorrect ? strtoupper($right[$i]) : (isset($wrong[$i - count($right)]) ? strtoupper($wrong[$i - count($right)]) : null),
                         'correctAnswers' => [strtoupper($isCorrect ? $right[$i] : ($missing[$i - count($right)] ?? ''))],
                         'isCorrect' => $isCorrect,
+                        'spellingError' => false,
                     ];
                 }
 
@@ -41,6 +42,10 @@ class ObjectiveMarker
 
             $value = is_array($given) ? ($given[0] ?? null) : $given;
             $userAnswer = is_string($value) && trim($value) !== '' ? trim($value) : null;
+            $isCorrect = $userAnswer !== null && in_array($this->normalise($userAnswer), $accepted, true);
+            $misspelt = ! $isCorrect && $userAnswer !== null && $g['typed']
+                ? $this->misspellingOf($this->normalise($userAnswer), $accepted)
+                : null;
             $review[] = [
                 'number' => $g['numbers'][0],
                 'questionId' => $g['questionId'],
@@ -48,7 +53,9 @@ class ObjectiveMarker
                 'section' => $g['section'],
                 'userAnswer' => $userAnswer,
                 'correctAnswers' => array_map([$this, 'display'], $accepted),
-                'isCorrect' => $userAnswer !== null && in_array($this->normalise($userAnswer), $accepted, true),
+                'isCorrect' => $isCorrect,
+                'spellingError' => $misspelt !== null,
+                'misspeltAnswer' => $misspelt,
             ];
         }
         usort($review, fn ($a, $b) => $a['number'] <=> $b['number']);
@@ -60,11 +67,21 @@ class ObjectiveMarker
             $byType[$r['type']]['correct'] += $r['isCorrect'] ? 1 : 0;
         }
 
+        $misspelled = [];
+        foreach ($review as &$r) {
+            if ($r['spellingError']) {
+                $misspelled[] = ['number' => $r['number'], 'userAnswer' => $r['userAnswer'], 'correctAnswer' => $this->display($r['misspeltAnswer'])];
+            }
+            unset($r['misspeltAnswer']);
+        }
+        unset($r);
+
         return [
             'rawScore' => count(array_filter($review, fn ($r) => $r['isCorrect'])),
             'maxScore' => count($review),
             'review' => $review,
             'breakdown' => array_values($byType),
+            'misspelledWords' => $misspelled,
         ];
     }
 
@@ -92,6 +109,26 @@ class ObjectiveMarker
         return trim(preg_replace('/\s+/', ' ', $answer));
     }
 
+    /**
+     * The accepted answer a wrong typed answer is a misspelling of: within 1 edit for words of
+     * 4–6 letters, 2 edits for 7 or more. Shorter answers and numbers are never "misspelt".
+     */
+    public function misspellingOf(string $answer, array $accepted): ?string
+    {
+        foreach ($accepted as $correct) {
+            $length = mb_strlen($correct);
+            if ($length < 4 || preg_match('/\d/', $correct) || preg_match('/\d/', $answer)) {
+                continue;
+            }
+            $allowed = $length >= 7 ? 2 : 1;
+            if (abs(mb_strlen($answer) - $length) <= $allowed && levenshtein($answer, $correct) <= $allowed) {
+                return $correct;
+            }
+        }
+
+        return null;
+    }
+
     /** Letters and TRUE/FALSE/NOT GIVEN are shown upper-case; words as written. */
     private function display(string $answer): string
     {
@@ -100,7 +137,7 @@ class ObjectiveMarker
             : $answer;
     }
 
-    /** @return list<array{questionId: string, numbers: list<int>, type: string, section: int, select: int}> */
+    /** @return list<array{questionId: string, numbers: list<int>, type: string, section: int, select: int, typed: bool}> */
     private function gradables(array $content): array
     {
         $sections = $content['skill'] === 'listening' ? $content['parts'] : $content['sections'];
@@ -114,6 +151,9 @@ class ObjectiveMarker
                         'type' => $group['type'],
                         'section' => $section['number'],
                         'select' => $group['type'] === 'multiple_choice' ? $q['select'] : 1,
+                        // Words the student types (no word bank / letters to pick from).
+                        'typed' => in_array($group['type'], ['gap_fill', 'table_completion', 'diagram_label', 'short_answer'], true)
+                            && empty($group['options']),
                     ];
                 }
             }

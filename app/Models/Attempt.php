@@ -53,4 +53,16 @@ class Attempt extends Model
     {
         return $this->listening_plays === 2;
     }
+
+    /** Custom practice on the student's own task: shown, but excluded from the estimated band. */
+    public function isCustom(): bool
+    {
+        return $this->test->isCustom();
+    }
+
+    /** Counts toward the estimated band. */
+    public function countsTowardBand(): bool
+    {
+        return ! $this->practiceConditions() && ! $this->isCustom();
+    }
 }

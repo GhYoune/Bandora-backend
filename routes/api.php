@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AttemptController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CustomPracticeController;
+use App\Http\Controllers\Api\DeckController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
@@ -45,5 +47,13 @@ Route::prefix('v1')->group(function () {
         Route::get('attempts/{attempt}/result', [AttemptController::class, 'result']);
 
         Route::get('dashboard', [AttemptController::class, 'dashboard']);
+        Route::get('insights', [AttemptController::class, 'insights']);
+
+        Route::post('custom-practice', [CustomPracticeController::class, 'store']);
+
+        Route::get('decks', [DeckController::class, 'index']);
+        Route::get('decks/{deck}', [DeckController::class, 'show']);
+        Route::delete('decks/{deck}/progress', [DeckController::class, 'reset']);
+        Route::put('cards/{card}/progress', [DeckController::class, 'progress']);
     });
 });

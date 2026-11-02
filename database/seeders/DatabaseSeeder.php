@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /** Example packs, admin account, a demo student and the sample tests. Safe to run once on a fresh database. */
+    /** Example packs, admin account, a demo student, the sample tests and vocabulary decks. Safe to run once on a fresh database. */
     public function run(): void
     {
         $packs = collect([
@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
         app(PaymentService::class)->activate($student, $packs[1]);
 
         $this->seedTests();
+        $this->call(DeckSeeder::class);
     }
 
     private function seedTests(): void

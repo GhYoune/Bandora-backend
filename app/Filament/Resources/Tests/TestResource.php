@@ -19,6 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TestResource extends Resource
 {
@@ -29,6 +30,12 @@ class TestResource extends Resource
     protected static ?string $recordTitleAttribute = 'title';
 
     protected static ?int $navigationSort = 3;
+
+    /** Students' custom practice tasks are private tests; the teacher's list hides them. */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->catalog();
+    }
 
     public static function form(Schema $schema): Schema
     {

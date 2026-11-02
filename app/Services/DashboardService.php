@@ -15,13 +15,13 @@ class DashboardService
 
     /**
      * Estimated band per skill = average of the last 3 completed attempts (practice-condition
-     * Listening excluded). Overall = average of the 4 skills, only once all 4 have a band.
+     * Listening and custom practice excluded). Overall = average of the 4 skills, only once all 4 have a band.
      */
     public function build(User $user): array
     {
         $attempts = $user->attempts()->with('test')->withCount('recordings')->get();
         $counted = $attempts
-            ->filter(fn (Attempt $a) => $a->status === AttemptStatus::Completed && $a->band !== null && ! $a->practiceConditions())
+            ->filter(fn (Attempt $a) => $a->status === AttemptStatus::Completed && $a->band !== null && $a->countsTowardBand())
             ->sortBy('completed_at')
             ->values();
 

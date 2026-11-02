@@ -58,5 +58,5 @@ Question numbers are added automatically. Listening and Reading tests show in re
 - **Google OAuth keys** (`GOOGLE_CLIENT_ID/SECRET`), callback `{APP_URL}/api/v1/auth/google/callback`.
 - **Mail** (`MAIL_MAILER`, sender address) for verification and reset emails.
 - **Production env:** MySQL, `APP_URL=https://api.<domain>`, `FRONTEND_URL`, `SESSION_DOMAIN=.<domain>`,
-  `SANCTUM_STATEFUL_DOMAINS`, `CORS_ALLOWED_ORIGINS`, `TEACHER_WHATSAPP`, a queue worker under a process manager.
+  `SANCTUM_STATEFUL_DOMAINS`, `CORS_ALLOWED_ORIGINS`, `TEACHER_WHATSAPP` (plus optional `TEACHER_TELEGRAM` and `TEACHER_PHONE`), a queue worker under a process manager.
 - Remove or replace the seeded sample tests; their audio paths point at the frontend's placeholder files.
