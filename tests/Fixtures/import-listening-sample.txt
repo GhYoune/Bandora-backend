@@ -1,0 +1,57 @@
+# Part 1
+Title: Booking a bike tour
+
+Questions 1-4
+Type: form
+Instructions: Complete the form below.
+Word limit: Write ONE WORD AND/OR A NUMBER for each answer.
+Title: Riverside Bike Tours
+
+Name: Daniel [[Okafor]]
+Phone: [[0775 318 204|0775318204]]
+Tour day: [[Thursday]]
+- Helmet size: [[medium]]
+
+Questions 5-6
+Type: choice
+5. Why is Daniel calling?
+A) to cancel a tour
+*B) to change a date
+C) to ask about prices
+6. What will Daniel bring?
+*A) his own bike
+B) a packed lunch
+C) a rain jacket
+
+# Part 2
+Questions 7-9
+Type: map
+Letters: 6
+[image: Map of the park with six places marked A to F]
+7. Bike hire [[C]]
+8. Café [[F]]
+9. First aid [[A]]
+
+Questions 10-11
+Type: table
+Day | Activity | Cost
+Monday | [[kayaking]] | £20
+Tuesday | Guided walk | £[[15]]
+
+Questions 12-13
+Type: matching
+Options title: Opinions
+Options:
+A) too expensive
+B) well organised
+C) good for families
+12. The night tour [[B]]
+13. The river trip [[C|A]]
+
+Questions 14-15
+Type: choice
+14-15. Which TWO things does the guide recommend?
+*A) wearing gloves
+B) arriving early
+*C) checking the tyres
+D) bringing cash

@@ -13,7 +13,8 @@ class ListTests extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            // The text importer (/admin/tests/import) is kept for later but not linked: the tabbed form is the way in.
+            CreateAction::make()->label('New test'),
         ];
     }
 }

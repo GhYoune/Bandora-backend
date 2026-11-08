@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Tests;
 use App\Enums\Skill;
 use App\Filament\Resources\Tests\Pages\CreateTest;
 use App\Filament\Resources\Tests\Pages\EditTest;
+use App\Filament\Resources\Tests\Pages\ImportTest;
 use App\Filament\Resources\Tests\Pages\ListTests;
 use App\Models\Test;
 use BackedEnum;
@@ -39,7 +40,7 @@ class TestResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->columns(1)->components([...TestForm::details(), ...TestForm::content()]);
+        return $schema->columns(1)->components(TestForm::schema());
     }
 
     public static function table(Table $table): Table
@@ -59,8 +60,12 @@ class TestResource extends Resource
                     ->color(fn (Test $record) => $record->skill->isObjective() && $record->question_count !== 40 ? 'danger' : null)
                     ->tooltip(fn (Test $record) => $record->skill->isObjective() && $record->question_count !== 40 ? 'A real test has 40 questions.' : null),
                 IconColumn::make('is_free')->label('Free')->boolean(),
-                ToggleColumn::make('is_published')->label('Published'),
+                ToggleColumn::make('is_published')->label('Published')
+                    // A draft that is not ready cannot be switched on; the reason shows on hover.
+                    ->disabled(fn (Test $record) => ! $record->is_published && $record->publishProblems() !== [])
+                    ->tooltip(fn (Test $record) => ! $record->is_published ? implode(' ', $record->publishProblems()) ?: null : null),
                 TextColumn::make('attempts_count')->counts('attempts')->label('Attempts')->numeric(),
+                TextColumn::make('source')->placeholder('—')->toggleable()->searchable(),
                 TextColumn::make('updated_at')->since()->label('Updated')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -82,6 +87,7 @@ class TestResource extends Resource
         return [
             'index' => ListTests::route('/'),
             'create' => CreateTest::route('/create'),
+            'import' => ImportTest::route('/import'),
             'edit' => EditTest::route('/{record}/edit'),
         ];
     }

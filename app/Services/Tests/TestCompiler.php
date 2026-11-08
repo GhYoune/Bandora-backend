@@ -85,11 +85,13 @@ class TestCompiler
                     'id' => $passage['id'],
                     'title' => (string) ($passage['title'] ?? ''),
                     'subtitle' => filled($passage['subtitle'] ?? null) ? $passage['subtitle'] : null,
+                    // A paragraph is typed text, a picture (e.g. a scanned page), or both.
                     'paragraphs' => collect($this->list($passage['paragraphs'] ?? []))
-                        ->filter(fn (array $p) => filled($p['text'] ?? null))
+                        ->filter(fn (array $p) => filled($p['text'] ?? null) || filled($p['image'] ?? null))
                         ->map(fn (array $p) => [
                             'label' => filled($p['label'] ?? null) ? $p['label'] : null,
-                            'text' => trim($p['text']),
+                            'text' => trim((string) ($p['text'] ?? '')),
+                            'picture' => $this->picture($p['image'] ?? null, $p['image_alt'] ?? null),
                         ])->values()->all(),
                 ];
             }
@@ -205,6 +207,7 @@ class TestCompiler
                 'instructions' => filled($data['instructions'] ?? null) ? $data['instructions'] : $group['defaultInstructions'],
                 'firstNumber' => $first,
                 'lastNumber' => $this->number - 1,
+                'picture' => $this->picture($data['picture'] ?? null, $data['picture_alt'] ?? null),
                 ...collect($group)->except('defaultInstructions')->all(),
             ];
         }
@@ -492,6 +495,19 @@ class TestCompiler
         $letters = $this->letters(max($count, 2));
 
         return implode(', ', array_slice($letters, 0, -1)).' or '.end($letters);
+    }
+
+    /** An optional picture shown with a paragraph or above a set of questions. */
+    private function picture(mixed $path, ?string $alt): ?array
+    {
+        if (is_array($path)) {
+            $path = reset($path) ?: null; // an upload field can hold its file as a one-item array
+        }
+        if (blank($path)) {
+            return null;
+        }
+
+        return ['url' => $this->assetUrl($path), 'alt' => (string) $alt];
     }
 
     private function assetUrl(?string $path): string

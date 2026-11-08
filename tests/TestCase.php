@@ -13,6 +13,19 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    /**
+     * RefreshDatabase wipes the database. If the config is cached (php artisan optimize / config:cache),
+     * phpunit.xml's in-memory SQLite is ignored and the dev database would be wiped instead: refuse.
+     */
+    protected function beforeRefreshingDatabase(): void
+    {
+        $connection = config('database.default');
+        if ($connection !== 'sqlite' || config("database.connections.{$connection}.database") !== ':memory:') {
+            fwrite(STDERR, "\nTests must use the in-memory SQLite database, not '{$connection}'. Run: php artisan optimize:clear\n");
+            exit(1);
+        }
+    }
+
     /** Requests from the Next.js app: Sanctum treats them as stateful (cookie session). */
     protected array $spa = ['Origin' => 'http://localhost:3000', 'Referer' => 'http://localhost:3000/'];
 

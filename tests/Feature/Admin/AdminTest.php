@@ -16,6 +16,8 @@ use App\Models\Test;
 use App\Models\User;
 use App\Services\PaymentService;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -127,7 +129,7 @@ class AdminTest extends TestCase
                 'skill' => Skill::Reading->value,
                 'title' => 'Reading Test 9',
                 'duration_seconds' => 3600,
-                'is_published' => true,
+                'is_published' => false, // a 2-question draft cannot be published
                 'form.sections' => [[
                     'passages' => [[
                         'title' => 'Library notice',
@@ -153,6 +155,20 @@ class AdminTest extends TestCase
         $this->assertNotEmpty($test->form['sections'][0]['groups'][0]['data']['id'] ?? null, 'ids are written back into the form');
     }
 
+    public function test_incomplete_tests_cannot_be_published(): void
+    {
+        $test = $this->firstOf(Skill::Listening, free: true);
+        $this->assertSame([], $test->publishProblems());
+
+        $form = $test->form;
+        $form['parts'][0]['audio'] = null;
+        $test->update(['is_published' => false, 'form' => $form]);
+        $this->assertSame(['Part 1 has no recording.'], $test->fresh()->publishProblems());
+
+        $this->expectException(ValidationException::class);
+        $test->fresh()->update(['is_published' => true]);
+    }
+
     public function test_editing_a_test_keeps_question_ids(): void
     {
         $test = Test::where('skill', Skill::Writing)->first();
@@ -165,5 +181,92 @@ class AdminTest extends TestCase
 
         $this->assertSame('Renamed', $test->fresh()->title);
         $this->assertSame($taskId, $test->fresh()->content['tasks'][0]['id']);
+    }
+
+    public function test_teacher_fills_a_listening_part_in_its_own_tab(): void
+    {
+        Livewire::test(CreateTest::class)
+            ->fillForm(['skill' => Skill::Listening->value])
+            ->assertSee('Part 4')
+            ->fillForm([
+                'title' => 'Listening Test 9',
+                'duration_seconds' => 2400,
+                'form.parts.1.groups' => [
+                    ['type' => 'short_answer', 'data' => ['questions' => [['prompt' => 'Where is the meeting?', 'answer' => 'library']]]],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $test = Test::firstWhere('title', 'Listening Test 9');
+        // Part 1 stays as an empty slot before the filled Part 2; empty Parts 3 and 4 are dropped.
+        $this->assertCount(2, $test->content['parts']);
+        $this->assertSame(1, $test->question_count);
+        $this->assertSame(1, $test->content['parts'][1]['groups'][0]['firstNumber']);
+    }
+
+    public function test_a_writing_test_with_only_task_2_keeps_it_in_the_task_2_tab(): void
+    {
+        $test = Test::create([
+            'skill' => Skill::Writing, 'title' => 'Essay only', 'duration_seconds' => 2400,
+            'form' => ['tasks' => [['number' => 2, 'prompt' => 'Some people think cities should ban cars.']]],
+        ]);
+
+        Livewire::test(EditTest::class, ['record' => $test->id])
+            ->assertSchemaStateSet(['form.tasks.1.prompt' => 'Some people think cities should ban cars.'])
+            ->fillForm(['form.tasks.1.prompt' => 'Some people think cities should ban all cars.'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $tasks = $test->fresh()->content['tasks'];
+        $this->assertCount(1, $tasks, 'the empty Task 1 tab is not saved');
+        $this->assertSame(2, $tasks[0]['number']);
+        $this->assertSame('Some people think cities should ban all cars.', $tasks[0]['prompt']);
+    }
+
+    public function test_saving_a_full_listening_test_from_the_tabs_changes_nothing(): void
+    {
+        $test = $this->firstOf(Skill::Listening, free: true);
+        $before = [$test->content, $test->answer_key, $test->question_count];
+        // The demo recordings and map point at frontend files; give the upload fields something to find.
+        $disk = Storage::fake('public');
+        $form = $test->form;
+        array_walk_recursive($form, function ($value, $key) use ($disk) {
+            if (in_array($key, ['audio', 'image'], true) && is_string($value)) {
+                $disk->put(ltrim($value, '/'), 'x');
+            }
+        });
+
+        Livewire::test(EditTest::class, ['record' => $test->id])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $test->refresh();
+        $this->assertSame($before, [$test->content, $test->answer_key, $test->question_count]);
+    }
+
+    public function test_a_reading_text_can_be_a_scan_and_questions_can_have_a_picture(): void
+    {
+        $test = Test::create([
+            'skill' => Skill::Reading, 'title' => 'Scanned', 'duration_seconds' => 3600,
+            'form' => ['sections' => [[
+                'passages' => [['title' => 'Gym timetable', 'paragraphs' => [
+                    ['label' => 'A', 'image' => 'tests/images/page-1.jpg', 'image_alt' => 'Scanned timetable'],
+                    ['text' => 'Classes are free for members.'],
+                ]]],
+                'groups' => [['type' => 'short_answer', 'data' => [
+                    'picture' => 'tests/images/poster.png', 'picture_alt' => 'Gym poster',
+                    'questions' => [['prompt' => 'What is free?', 'answer' => 'classes']],
+                ]]],
+            ]]],
+        ]);
+
+        $section = $test->content['sections'][0];
+        [$scan, $typed] = $section['passages'][0]['paragraphs'];
+        $this->assertSame('', $scan['text']);
+        $this->assertStringEndsWith('tests/images/page-1.jpg', $scan['picture']['url']);
+        $this->assertSame(['A', 'Scanned timetable'], [$scan['label'], $scan['picture']['alt']]);
+        $this->assertNull($typed['picture']);
+        $this->assertSame('Gym poster', $section['groups'][0]['picture']['alt']);
     }
 }
