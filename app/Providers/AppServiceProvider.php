@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\User;
 use App\Services\Marking\AiMarker;
 use App\Services\Marking\FakeAiMarker;
+use App\Services\Marking\GeminiAiMarker;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(AiMarker::class, fn () => match (config('bandora.marking.driver')) {
             'fake' => new FakeAiMarker,
+            'gemini' => new GeminiAiMarker(
+                (string) config('bandora.marking.gemini.key'),
+                (string) config('bandora.marking.gemini.model'),
+                timeout: (int) config('bandora.marking.gemini.timeout'),
+            ),
             default => throw new InvalidArgumentException('Unknown MARKING_DRIVER: '.config('bandora.marking.driver')),
         });
     }

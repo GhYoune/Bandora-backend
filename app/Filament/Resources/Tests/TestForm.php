@@ -125,7 +125,7 @@ class TestForm
                 TextInput::make('sort')->numeric()->default(0)->helperText('Lower numbers appear first.'),
                 Toggle::make('is_free')->label('Free test')->helperText('Available on the free plan.'),
                 Toggle::make('is_published')->label('Published')
-                    ->helperText('Students only see published tests. A test needs all its questions, answers, pictures and recordings first.'),
+                    ->helperText('Leave it off while you work: the test is saved as a draft, even half-filled. Switch it on once every question, answer, picture and recording is in.'),
             ]),
         ];
     }
@@ -158,6 +158,20 @@ class TestForm
                 Hidden::make('signature'),
                 Hidden::make('generated'),
             ]);
+    }
+
+    /**
+     * Drafts save whatever is filled in; the fields inside the parts are only required once the
+     * teacher switches on Published (publishProblems() then checks the test as a whole).
+     */
+    private static function whenPublishing(): \Closure
+    {
+        return fn ($livewire) => self::isPublishing($livewire);
+    }
+
+    private static function isPublishing(mixed $livewire): bool
+    {
+        return (bool) data_get($livewire, 'data.is_published');
     }
 
     private static function skillOf(mixed $state): ?Skill
@@ -218,7 +232,7 @@ class TestForm
                 ->schema([
                     Hidden::make('id'),
                     Grid::make(2)->schema([
-                        TextInput::make('title')->required(),
+                        TextInput::make('title')->required(self::whenPublishing()),
                         TextInput::make('subtitle'),
                     ]),
                     Repeater::make('paragraphs')
@@ -229,8 +243,8 @@ class TestForm
                             TextInput::make('label')->label('Letter')->placeholder('A')->maxLength(2)
                                 ->helperText('For matching tasks')->columnSpan(2),
                             Textarea::make('text')->rows(4)->columnSpan(10)
-                                ->requiredWithout('image')
-                                ->validationMessages(['required_without' => 'Type the paragraph or upload a picture of it.']),
+                                ->required(fn ($livewire, Get $get) => self::isPublishing($livewire) && blank($get('image')))
+                                ->validationMessages(['required' => 'Type the paragraph or upload a picture of it.']),
                             FileUpload::make('image')->label('…or a picture of it')->image()
                                 ->disk('public')->directory('tests/images')->visibility('public')->maxSize(8 * 1024)
                                 ->columnStart(3)->columnSpan(5),
@@ -274,14 +288,14 @@ class TestForm
     {
         // Not simple() repeaters: each question keeps a hidden id so recordings stay linked after edits.
         $questions = fn (string $name) => Repeater::make($name)
-            ->schema([Hidden::make('id'), TextInput::make('text')->hiddenLabel()->required()])
+            ->schema([Hidden::make('id'), TextInput::make('text')->hiddenLabel()->required(self::whenPublishing())])
             ->addActionLabel('Add question');
 
         return [
             1 => [
                 Text::make('Interview: short questions about familiar topics. Each question is shown, the student records an answer.')->color('gray'),
                 Grid::make(2)->schema([
-                    TextInput::make('topic')->required(),
+                    TextInput::make('topic')->required(self::whenPublishing()),
                     TextInput::make('answer_seconds')->label('Max answer length (seconds)')->numeric()->default(45),
                 ]),
                 $questions('questions'),
@@ -289,7 +303,7 @@ class TestForm
             2 => [
                 Text::make('Cue card: the student gets a minute to prepare, then speaks for up to two minutes.')->color('gray'),
                 Hidden::make('id'),
-                TextInput::make('topic')->required()->placeholder('Describe a useful skill you have learned.'),
+                TextInput::make('topic')->required(self::whenPublishing())->placeholder('Describe a useful skill you have learned.'),
                 Textarea::make('bullets')->rows(4)->helperText('"You should say:" points, one per line.'),
                 TextInput::make('closing')->placeholder('and explain why this skill has been useful to you.'),
                 Grid::make(2)->schema([
@@ -303,7 +317,7 @@ class TestForm
             3 => [
                 Text::make('Discussion: longer, more abstract questions linked to the Part 2 topic.')->color('gray'),
                 Grid::make(2)->schema([
-                    TextInput::make('topic')->required(),
+                    TextInput::make('topic')->required(self::whenPublishing()),
                     TextInput::make('answer_seconds')->label('Max answer length (seconds)')->numeric()->default(75),
                 ]),
                 $questions('questions'),
@@ -500,14 +514,14 @@ class TestForm
                             ->itemLabel(fn (array $state) => $state['prompt'] ?? null)
                             ->schema([
                                 Hidden::make('id'),
-                                TextInput::make('prompt')->required(),
+                                TextInput::make('prompt')->required(self::whenPublishing()),
                                 Repeater::make('options')
                                     ->helperText('Tick the correct option. Tick two for a "Choose TWO" question (it counts as two questions).')
                                     ->addActionLabel('Add option')
                                     ->defaultItems(3)
                                     ->columns(6)
                                     ->schema([
-                                        TextInput::make('text')->required()->columnSpan(5),
+                                        TextInput::make('text')->required(self::whenPublishing())->columnSpan(5),
                                         Toggle::make('correct')->inline(false),
                                     ]),
                             ]),
@@ -522,15 +536,15 @@ class TestForm
                         $picture(),
                         Select::make('variant')
                             ->options(['tfng' => 'TRUE / FALSE / NOT GIVEN', 'ynng' => 'YES / NO / NOT GIVEN'])
-                            ->default('tfng')->required()->live(),
+                            ->default('tfng')->required(self::whenPublishing())->live(),
                         $instructions(),
                         Repeater::make('questions')
                             ->addActionLabel('Add statement')
                             ->columns(4)
                             ->schema([
                                 Hidden::make('id'),
-                                TextInput::make('statement')->required()->columnSpan(3),
-                                Select::make('answer')->required()->options(fn (Get $get) => $get('../../variant') === 'ynng'
+                                TextInput::make('statement')->required(self::whenPublishing())->columnSpan(3),
+                                Select::make('answer')->required(self::whenPublishing())->options(fn (Get $get) => $get('../../variant') === 'ynng'
                                     ? ['yes' => 'YES', 'no' => 'NO', 'not given' => 'NOT GIVEN']
                                     : ['true' => 'TRUE', 'false' => 'FALSE', 'not given' => 'NOT GIVEN']),
                             ]),
@@ -544,7 +558,7 @@ class TestForm
                         Hidden::make('id'),
                         $picture(),
                         Grid::make(3)->schema([
-                            Select::make('variant')->required()->default('general')->options([
+                            Select::make('variant')->required(self::whenPublishing())->default('general')->options([
                                 'headings' => 'Matching headings (i, ii, iii…)',
                                 'information' => 'Matching information',
                                 'features' => 'Matching features',
@@ -557,15 +571,15 @@ class TestForm
                         $instructions(),
                         Repeater::make('options')
                             ->helperText('Keys are added automatically: A, B, C… (or i, ii, iii… for headings).')
-                            ->simple(TextInput::make('text')->required())
+                            ->simple(TextInput::make('text')->required(self::whenPublishing()))
                             ->addActionLabel('Add option'),
                         Repeater::make('questions')
                             ->addActionLabel('Add question')
                             ->columns(4)
                             ->schema([
                                 Hidden::make('id'),
-                                TextInput::make('prompt')->required()->columnSpan(3)->placeholder('Paragraph B'),
-                                TextInput::make('answer')->required()->placeholder('B or iv'),
+                                TextInput::make('prompt')->required(self::whenPublishing())->columnSpan(3)->placeholder('Paragraph B'),
+                                TextInput::make('answer')->required(self::whenPublishing())->placeholder('B or iv'),
                             ]),
                     ]),
 
@@ -577,14 +591,14 @@ class TestForm
                         Hidden::make('id'),
                         $picture(),
                         Grid::make(3)->schema([
-                            Select::make('layout')->required()->default('notes')->options([
+                            Select::make('layout')->required(self::whenPublishing())->default('notes')->options([
                                 'notes' => 'Notes', 'form' => 'Form', 'sentences' => 'Sentences', 'summary' => 'Summary', 'flow_chart' => 'Flow chart',
                             ]),
                             TextInput::make('title'),
                             $wordLimit(),
                         ]),
                         $instructions(),
-                        Textarea::make('text')->required()->rows(10)->helperText(self::GAP_HELP),
+                        Textarea::make('text')->required(self::whenPublishing())->rows(10)->helperText(self::GAP_HELP),
                         Repeater::make('word_bank')
                             ->label('Word bank (optional)')
                             ->helperText('If you add words here, students pick from the list (A, B, C…). In the text, write the word or its letter as the answer.')
@@ -602,10 +616,10 @@ class TestForm
                         $picture(),
                         Grid::make(2)->schema([TextInput::make('title'), $wordLimit()]),
                         $instructions(),
-                        TextInput::make('headers')->required()->placeholder('Stage | Details | Deadline')
+                        TextInput::make('headers')->required(self::whenPublishing())->placeholder('Stage | Details | Deadline')
                             ->helperText('Column headings separated by "|".'),
                         Repeater::make('rows')
-                            ->simple(TextInput::make('cells')->required()->placeholder('Pilot | Check the [[clarity]] of the questions | Monday'))
+                            ->simple(TextInput::make('cells')->required(self::whenPublishing())->placeholder('Pilot | Check the [[clarity]] of the questions | Monday'))
                             ->helperText('One row per line, cells separated by "|". Gaps: [[answer]].')
                             ->addActionLabel('Add row'),
                     ]),
@@ -618,7 +632,7 @@ class TestForm
                         Hidden::make('id'),
                         Grid::make(3)->schema([
                             TextInput::make('title'),
-                            Select::make('mode')->required()->default('letters')->live()->options([
+                            Select::make('mode')->required(self::whenPublishing())->default('letters')->live()->options([
                                 'letters' => 'Map: letters are on the image',
                                 'words' => 'Diagram: students write words',
                             ]),
@@ -626,9 +640,9 @@ class TestForm
                                 ->visible(fn (Get $get) => $get('mode') === 'letters'),
                         ]),
                         $instructions(),
-                        FileUpload::make('image')->image()->required()
+                        FileUpload::make('image')->image()->required(self::whenPublishing())
                             ->disk('public')->directory('tests/images')->visibility('public')->maxSize(5 * 1024),
-                        TextInput::make('image_alt')->label('Image description')->required()
+                        TextInput::make('image_alt')->label('Image description')->required(self::whenPublishing())
                             ->helperText('One sentence describing the image, for screen readers.'),
                         $wordLimit()->visible(fn (Get $get) => $get('mode') === 'words'),
                         Repeater::make('questions')
@@ -637,7 +651,7 @@ class TestForm
                             ->schema([
                                 Hidden::make('id'),
                                 TextInput::make('prompt')->columnSpan(3)->placeholder('Café'),
-                                TextInput::make('answer')->required()->placeholder('C'),
+                                TextInput::make('answer')->required(self::whenPublishing())->placeholder('C'),
                                 TextInput::make('x')->label('X %')->numeric()->helperText('Diagram only'),
                                 TextInput::make('y')->label('Y %')->numeric(),
                             ]),
@@ -657,8 +671,8 @@ class TestForm
                             ->columns(3)
                             ->schema([
                                 Hidden::make('id'),
-                                TextInput::make('prompt')->required()->columnSpan(2),
-                                TextInput::make('answer')->required()->helperText('Alternatives with "|"'),
+                                TextInput::make('prompt')->required(self::whenPublishing())->columnSpan(2),
+                                TextInput::make('answer')->required(self::whenPublishing())->helperText('Alternatives with "|"'),
                             ]),
                     ]),
             ]);

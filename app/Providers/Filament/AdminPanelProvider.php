@@ -26,6 +26,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            // Leaving a half-built test asks for confirmation first.
+            ->unsavedChangesAlerts()
             ->login()
             ->brandName('Bandora')
             ->colors([

@@ -14,7 +14,14 @@ return [
     'teacher_phone' => env('TEACHER_PHONE'),
 
     'marking' => [
-        /** "fake" produces rule-based feedback for development. Add a real AI driver in app/Services/Marking. */
+        /** "gemini" marks with Google Gemini; "fake" produces rule-based feedback for development. */
         'driver' => env('MARKING_DRIVER', 'fake'),
+
+        'gemini' => [
+            /** From Google AI Studio (aistudio.google.com), created on the teacher's Google account. */
+            'key' => env('GEMINI_API_KEY', ''),
+            'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),
+            'timeout' => (int) env('GEMINI_TIMEOUT', 120),
+        ],
     ],
 ];

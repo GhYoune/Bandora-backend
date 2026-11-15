@@ -17,10 +17,13 @@ class AttemptService
 {
     public function __construct(private ObjectiveMarker $marker) {}
 
-    /** free = free-tier test, included = unlocked by the pack, locked = needs a pack. */
+    /**
+     * free = free-tier test, included = unlocked by the pack, locked = needs a pack.
+     * AI-marked skills (Writing, Speaking) always need a pack: the free tier is Listening and Reading only.
+     */
     public function access(Test $test, User $user): string
     {
-        if ($test->is_free) {
+        if ($test->is_free && ($test->skill->isObjective() || $user->hasActivePack())) {
             return 'free';
         }
 

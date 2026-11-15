@@ -19,6 +19,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -53,6 +54,10 @@ class TestResource extends Resource
                     Skill::Listening => 'info', Skill::Reading => 'success', Skill::Writing => 'warning', Skill::Speaking => 'danger',
                 }),
                 TextColumn::make('title')->searchable()->description(fn (Test $record) => $record->description),
+                TextColumn::make('status')
+                    ->state(fn (Test $record) => $record->is_published ? 'Published' : 'Draft')
+                    ->badge()
+                    ->color(fn (string $state) => $state === 'Draft' ? 'gray' : 'success'),
                 TextColumn::make('question_count')
                     ->label('Questions')
                     ->numeric()
@@ -70,6 +75,8 @@ class TestResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('skill')->options(Skill::class),
+                TernaryFilter::make('is_published')->label('Status')
+                    ->trueLabel('Published')->falseLabel('Drafts')->placeholder('All'),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -17,7 +17,7 @@ class PaymentTest extends TestCase
     {
         parent::setUp();
         $this->seedCatalog();
-        $this->pack = Pack::where('name', '3 months')->firstOrFail();
+        $this->pack = Pack::where('name', 'Silver')->firstOrFail();
     }
 
     private function admin(): User
@@ -31,7 +31,7 @@ class PaymentTest extends TestCase
             ->assertOk()
             ->assertJsonCount(3)
             ->assertJsonPath('1', [
-                'id' => $this->pack->id, 'name' => '3 months', 'durationDays' => 90, 'priceDzd' => 8000,
+                'id' => $this->pack->id, 'name' => 'Silver', 'durationDays' => 90, 'priceDzd' => 8000,
                 'credits' => 40, 'highlighted' => true, 'features' => $this->pack->features,
             ]);
     }
@@ -76,7 +76,7 @@ class PaymentTest extends TestCase
 
         $me = $this->getJson('/api/v1/me')->json();
         $this->assertSame('paid', $me['access']['tier']);
-        $this->assertSame(1 + 40, $me['access']['credits']); // the free credit is kept
+        $this->assertSame(40, $me['access']['credits']);
         $this->assertNull($me['pendingPayment']);
         $this->assertEqualsWithDelta(now()->addDays(90)->timestamp, strtotime($me['access']['pack']['expiresAt']), 5);
         $this->assertSame(['free', 'included', 'included'], array_column($this->getJson('/api/v1/tests?skill=reading')->json(), 'access'));
@@ -89,10 +89,10 @@ class PaymentTest extends TestCase
         $service->activate($user, $this->pack);
         $firstEnd = $user->fresh()->pack_expires_at;
 
-        $service->activate($user->fresh(), Pack::where('name', '1 month')->first());
+        $service->activate($user->fresh(), Pack::where('name', 'Bronze')->first());
 
         $this->assertEquals($firstEnd->copy()->addDays(30)->timestamp, $user->fresh()->pack_expires_at->timestamp);
-        $this->assertSame(1 + 40 + 10, $user->fresh()->credits);
+        $this->assertSame(40 + 10, $user->fresh()->credits);
     }
 
     public function test_expired_pack_locks_tests_and_zeroes_credits(): void

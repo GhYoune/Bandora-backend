@@ -59,7 +59,7 @@ class PracticeAndVocabularyTest extends TestCase
 
     public function test_custom_writing_is_marked_but_excluded_from_the_band(): void
     {
-        $user = $this->student();
+        $user = $this->paidStudent(['credits' => 1]);
 
         $attempt = $this->postJson('/api/v1/custom-practice', [
             'skill' => 'writing', 'taskNumber' => 2, 'timed' => false,
@@ -87,7 +87,7 @@ class PracticeAndVocabularyTest extends TestCase
 
     public function test_timed_custom_writing_gets_the_task_time(): void
     {
-        $this->student();
+        $this->paidStudent();
         $attempt = $this->postJson('/api/v1/custom-practice', [
             'skill' => 'writing', 'taskNumber' => 1, 'timed' => true,
             'prompt' => 'You recently bought a jacket online but it arrived damaged. Write a letter to the shop.',
@@ -100,7 +100,7 @@ class PracticeAndVocabularyTest extends TestCase
 
     public function test_custom_speaking_parts(): void
     {
-        $this->student(['credits' => 3]);
+        $this->paidStudent(['credits' => 3]);
 
         $part2 = $this->postJson('/api/v1/custom-practice', [
             'skill' => 'speaking', 'part' => 2,
@@ -120,7 +120,11 @@ class PracticeAndVocabularyTest extends TestCase
 
     public function test_custom_practice_validation_and_credits(): void
     {
-        $this->student(['credits' => 0]);
+        $this->student();
+        $this->postJson('/api/v1/custom-practice', ['skill' => 'speaking', 'part' => 1, 'questions' => ['Where do you live?']])
+            ->assertForbidden()->assertJson(['code' => 'pack_required']);
+
+        $this->paidStudent(['credits' => 0]);
         $this->postJson('/api/v1/custom-practice', ['skill' => 'writing', 'taskNumber' => 2, 'timed' => true, 'prompt' => 'Too short'])
             ->assertUnprocessable()->assertJsonValidationErrors('prompt');
         $this->postJson('/api/v1/custom-practice', ['skill' => 'speaking', 'part' => 3, 'questions' => []])
@@ -167,7 +171,7 @@ class PracticeAndVocabularyTest extends TestCase
 
     public function test_insights_gather_weak_points_across_attempts(): void
     {
-        $this->student(['credits' => 2]);
+        $this->paidStudent(['credits' => 2]);
         $this->assertSame(
             ['questionTypes' => [], 'misspelledWords' => [], 'writing' => ['attemptsCounted' => 0, 'criteria' => [], 'errorCategories' => []], 'speaking' => ['attemptsCounted' => 0, 'criteria' => [], 'errorCategories' => []]],
             $this->getJson('/api/v1/insights')->assertOk()->json(),

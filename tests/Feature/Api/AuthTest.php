@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
-    public function test_register_logs_in_gives_free_credit_and_sends_verification(): void
+    public function test_register_logs_in_on_the_free_tier_and_sends_verification(): void
     {
         Notification::fake();
 
@@ -24,7 +24,7 @@ class AuthTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('email', 'yacine@mail.dz')
             ->assertJsonPath('emailVerified', false)
-            ->assertJsonPath('access', ['tier' => 'free', 'pack' => null, 'credits' => 1])
+            ->assertJsonPath('access', ['tier' => 'free', 'pack' => null, 'credits' => 0])
             ->assertJsonPath('pendingPayment', null);
 
         Notification::assertSentTo(User::firstWhere('email', 'yacine@mail.dz'), VerifyEmail::class);

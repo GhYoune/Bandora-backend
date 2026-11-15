@@ -22,8 +22,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    /** Credits given to every new account (the free AI-marked essay). */
-    public const FREE_CREDITS = 1;
+    /** Credits given to every new account. None: AI marking (Writing/Speaking) needs a pack. */
+    public const FREE_CREDITS = 0;
 
     protected function casts(): array
     {

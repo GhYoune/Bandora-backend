@@ -9,11 +9,15 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditTest extends EditRecord
 {
+    use ImportsQuestions;
+    use SavesAsDraftWhenIncomplete;
+
     protected static string $resource = TestResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            ...$this->questionImportActions(),
             DeleteAction::make(),
         ];
     }
@@ -26,6 +30,11 @@ class EditTest extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // The skill field is disabled on edit, so it is not in $data.
-        return TestForm::prepareRecordings(TestForm::fromTabs(['skill' => $this->getRecord()->skill] + $data));
+        return $this->keepAsDraftIfIncomplete(TestForm::prepareRecordings(TestForm::fromTabs(['skill' => $this->getRecord()->skill] + $data)));
+    }
+
+    protected function afterSave(): void
+    {
+        $this->notifyIfKeptAsDraft();
     }
 }

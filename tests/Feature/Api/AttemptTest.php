@@ -143,9 +143,19 @@ class AttemptTest extends TestCase
         $this->assertSame(['B', 'D'], [$review[1]['userAnswer'], $review[1]['correctAnswers'][0]]);
     }
 
+    public function test_free_students_get_listening_and_reading_but_no_ai_marking(): void
+    {
+        $this->student();
+        $this->postJson('/api/v1/tests/'.$this->firstOf(Skill::Listening, free: true)->id.'/attempts')->assertCreated();
+        $this->postJson('/api/v1/tests/'.$this->firstOf(Skill::Writing, free: true)->id.'/attempts')
+            ->assertForbidden()->assertJson(['code' => 'pack_required']);
+        $this->postJson('/api/v1/tests/'.$this->firstOf(Skill::Speaking, free: false)->id.'/attempts')
+            ->assertForbidden()->assertJson(['code' => 'pack_required']);
+    }
+
     public function test_writing_charges_credits_and_ai_marks_it(): void
     {
-        $user = $this->student();
+        $user = $this->paidStudent(['credits' => 1]);
         $test = $this->firstOf(Skill::Writing, free: true); // Task 2 only, 1 credit
         $id = $this->postJson("/api/v1/tests/{$test->id}/attempts")->assertCreated()->json('id');
         $taskId = $test->content['tasks'][0]['id'];
@@ -180,7 +190,7 @@ class AttemptTest extends TestCase
 
     public function test_marking_failure_refunds_credits(): void
     {
-        $user = $this->student();
+        $user = $this->paidStudent(['credits' => 1]);
         $test = $this->firstOf(Skill::Writing, free: true);
         $id = $this->postJson("/api/v1/tests/{$test->id}/attempts")->json('id');
         $this->app->bind(AiMarker::class, fn () => new class implements AiMarker

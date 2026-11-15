@@ -15,11 +15,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $packs = collect([
-            ['name' => '1 month', 'duration_days' => 30, 'price_dzd' => 3500, 'credits' => 10, 'highlighted' => false, 'sort' => 1,
+            ['name' => 'Bronze', 'duration_days' => 30, 'price_dzd' => 3500, 'credits' => 10, 'highlighted' => false, 'sort' => 1,
                 'features' => ['Every Listening and Reading test', 'Every Writing and Speaking test', '10 AI marking credits']],
-            ['name' => '3 months', 'duration_days' => 90, 'price_dzd' => 8000, 'credits' => 40, 'highlighted' => true, 'sort' => 2,
+            ['name' => 'Silver', 'duration_days' => 90, 'price_dzd' => 8000, 'credits' => 40, 'highlighted' => true, 'sort' => 2,
                 'features' => ['Every Listening and Reading test', 'Every Writing and Speaking test', '40 AI marking credits', 'Full progress history']],
-            ['name' => '6 months', 'duration_days' => 180, 'price_dzd' => 13000, 'credits' => 100, 'highlighted' => false, 'sort' => 3,
+            ['name' => 'Gold', 'duration_days' => 180, 'price_dzd' => 13000, 'credits' => 100, 'highlighted' => false, 'sort' => 3,
                 'features' => ['Every Listening and Reading test', 'Every Writing and Speaking test', '100 AI marking credits', 'Full progress history']],
         ])->map(fn (array $p) => Pack::create($p));
 

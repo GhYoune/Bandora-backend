@@ -28,7 +28,7 @@ class PackResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->columns(2)->components([
-            TextInput::make('name')->required()->placeholder('3 months'),
+            TextInput::make('name')->required()->placeholder('Silver'),
             TextInput::make('price_dzd')->label('Price (DA)')->numeric()->required()->minValue(0),
             TextInput::make('duration_days')->label('Duration (days)')->numeric()->required()->minValue(1),
             TextInput::make('credits')->label('AI marking credits')->numeric()->required()->minValue(0),

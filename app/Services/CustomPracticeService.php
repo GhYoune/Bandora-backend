@@ -20,6 +20,9 @@ class CustomPracticeService
 
     public function start(User $user, array $data): Attempt
     {
+        if (! $user->hasActivePack()) {
+            throw new BusinessException('pack_required', 'Your own tasks are marked by AI, which comes with a pack.');
+        }
         if ($user->availableCredits() < 1) {
             throw new BusinessException('no_credits', 'Custom practice is marked by AI and needs a credit. You have none left.');
         }

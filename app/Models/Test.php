@@ -34,11 +34,7 @@ class Test extends Model
         // The public content and answer key are always derived from what the teacher edits.
         static::saving(function (Test $test) {
             if ($test->isDirty(['form', 'skill']) || ! $test->content) {
-                $compiled = app(TestCompiler::class)->compile($test->skill, $test->form ?? []);
-                $test->form = $compiled->form;
-                $test->content = $compiled->content;
-                $test->answer_key = $compiled->answerKey;
-                $test->question_count = $compiled->questionCount;
+                $test->compileForm();
             }
             // Incomplete tests can be saved as drafts, but never shown to students.
             if ($test->is_published && $problems = $test->publishProblems()) {
@@ -72,6 +68,28 @@ class Test extends Model
     public function scopeCatalog(Builder $query): void
     {
         $query->whereNull('user_id');
+    }
+
+    /**
+     * publishProblems() for a form that is not saved yet.
+     *
+     * @return list<string>
+     */
+    public static function problemsFor(Skill $skill, array $form): array
+    {
+        $probe = new self(['skill' => $skill, 'form' => $form]);
+        $probe->compileForm();
+
+        return $probe->publishProblems();
+    }
+
+    private function compileForm(): void
+    {
+        $compiled = app(TestCompiler::class)->compile($this->skill, $this->form ?? []);
+        $this->form = $compiled->form;
+        $this->content = $compiled->content;
+        $this->answer_key = $compiled->answerKey;
+        $this->question_count = $compiled->questionCount;
     }
 
     /**

@@ -3,8 +3,10 @@
 namespace Tests;
 
 use App\Enums\Skill;
+use App\Models\Pack;
 use App\Models\Test;
 use App\Models\User;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Laravel\Sanctum\Sanctum;
@@ -42,6 +44,21 @@ abstract class TestCase extends BaseTestCase
         $this->actAs($user);
 
         return $user;
+    }
+
+    /** A student with a running pack (AI marking needs one). $attributes (e.g. credits) apply after the pack. */
+    protected function paidStudent(array $attributes = []): User
+    {
+        $user = $this->student();
+        app(PaymentService::class)->activate($user, Pack::orderBy('sort')->first() ?? Pack::create([
+            'name' => 'Bronze', 'duration_days' => 30, 'price_dzd' => 3500, 'credits' => 10, 'sort' => 1,
+        ]));
+        if ($attributes) {
+            $user->forceFill($attributes)->save();
+        }
+        $this->actAs($user);
+
+        return $user->fresh();
     }
 
     /** Logs in as $user (fresh from the database), replacing whoever was logged in. */

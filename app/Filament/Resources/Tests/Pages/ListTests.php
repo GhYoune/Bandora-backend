@@ -8,13 +8,19 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListTests extends ListRecords
 {
+    use CreatesTestsFromWorkbook;
+
     protected static string $resource = TestResource::class;
 
     protected function getHeaderActions(): array
     {
+        [$template, $import] = $this->workbookActions();
+
         return [
-            // The text importer (/admin/tests/import) is kept for later but not linked: the tabbed form is the way in.
-            CreateAction::make()->label('New test'),
+            $template,
+            // The text importer (/admin/tests/import) is kept for later but not linked.
+            CreateAction::make()->label('New test (form)')->color('gray'),
+            $import,
         ];
     }
 }

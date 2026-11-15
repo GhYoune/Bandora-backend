@@ -81,7 +81,7 @@ class AdminTest extends TestCase
     public function test_teacher_approves_a_payment_from_the_inbox(): void
     {
         $student = User::factory()->create(['email_verified_at' => now()]);
-        $payment = app(PaymentService::class)->request($student, Pack::firstWhere('name', '1 month'), '+213550112233');
+        $payment = app(PaymentService::class)->request($student, Pack::firstWhere('name', 'Bronze'), '+213550112233');
 
         Livewire::test(ManagePaymentRequests::class)
             ->assertCanSeeTableRecords([$payment])
@@ -115,10 +115,10 @@ class AdminTest extends TestCase
         $student = User::factory()->create();
 
         Livewire::test(ViewUser::class, ['record' => $student->id])
-            ->callAction('activatePack', ['pack_id' => Pack::firstWhere('name', '6 months')->id])
+            ->callAction('activatePack', ['pack_id' => Pack::firstWhere('name', 'Gold')->id])
             ->assertNotified();
 
-        $this->assertSame('6 months', $student->fresh()->pack_name);
+        $this->assertSame('Gold', $student->fresh()->pack_name);
         $this->assertSame(100, $student->fresh()->credits);
     }
 
@@ -268,5 +268,26 @@ class AdminTest extends TestCase
         $this->assertSame(['A', 'Scanned timetable'], [$scan['label'], $scan['picture']['alt']]);
         $this->assertNull($typed['picture']);
         $this->assertSame('Gym poster', $section['groups'][0]['picture']['alt']);
+    }
+
+    public function test_an_incomplete_test_marked_published_is_saved_as_a_draft(): void
+    {
+        Livewire::test(CreateTest::class)
+            ->fillForm([
+                'skill' => Skill::Listening->value,
+                'title' => 'Half-done listening',
+                'duration_seconds' => 2400,
+                'is_published' => true,
+                'form.parts.0.groups' => [
+                    ['type' => 'short_answer', 'data' => ['questions' => [['prompt' => 'Where?', 'answer' => 'library']]]],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors()
+            ->assertNotified('Saved as a draft, not published yet');
+
+        $test = Test::firstWhere('title', 'Half-done listening');
+        $this->assertNotNull($test, 'the work is kept');
+        $this->assertFalse($test->is_published);
     }
 }
